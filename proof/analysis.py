@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 This module contains the :class:`Analysis` class, which is used for creating
 optimized, repeatable data processing workflows. An analysis can be created
@@ -11,23 +9,26 @@ propagated to all dependent analyses.
 """
 
 import bz2
-from copy import deepcopy
-from glob import glob
 import hashlib
 import inspect
+import logging
 import os
+import pickle
+from copy import deepcopy
+from glob import glob
 
-try:
-    import cPickle as pickle
-except ImportError: # pragma: no cover
-    import pickle
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+logger.addHandler(ch)
 
-import six
 
-class Cache(object):
+class Cache:
     """
     Utility class for managing cached data.
     """
+
     def __init__(self, cache_path):
         self._cache_path = cache_path
         self._data = None
@@ -59,6 +60,7 @@ class Cache(object):
         f.write(pickle.dumps(self._data))
         f.close()
 
+
 def never_cache(func):
     """
     Decorator to flag that a given analysis function should never be cached.
@@ -67,7 +69,8 @@ def never_cache(func):
 
     return func
 
-class Analysis(object):
+
+class Analysis:
     """
     An Analysis is a function whose source code fingerprint and output can be
     serialized to disk. When it is invoked again, if it's code has not changed
@@ -83,6 +86,7 @@ class Analysis(object):
     :param _trace: The ancestors this analysis, if any. For internal use
         only.
     """
+
     def __init__(self, func, cache_dir='.proof', _trace=[]):
         self._name = func.__name__
         self._func = func
@@ -105,16 +109,14 @@ class Analysis(object):
         history = '\n'.join([analysis._name for analysis in self._trace])
 
         # In Python 3 function names can be non-ascii identifiers
-        if six.PY3:
-            history = history.encode('utf-8')
+        history = history.encode('utf-8')
 
         hasher.update(history)
 
         source = inspect.getsource(self._func)
 
         # In Python 3 inspect.getsource returns unicode data
-        if six.PY3:
-            source = source.encode('utf-8')
+        source = source.encode('utf-8')
 
         hasher.update(source)
 
@@ -177,15 +179,15 @@ class Analysis(object):
         do_not_cache = getattr(self._func, 'never_cache', False)
 
         if refresh is True:
-            print('Refreshing: %s' % self._name)
+            logger.info('Refreshing: %s' % self._name)
         elif do_not_cache:
             refresh = True
 
-            print('Never cached: %s' % self._name)
+            logger.info('Never cached: %s' % self._name)
         elif not self._cache.check():
             refresh = True
 
-            print('Stale cache: %s' % self._name)
+            logger.info('Stale cache: %s' % self._name)
 
         if refresh:
             if _parent_cache:
@@ -198,7 +200,7 @@ class Analysis(object):
             if not do_not_cache:
                 self._cache.set(local_data)
         else:
-            print('Deferring to cache: %s' % self._name)
+            logger.info('Deferring to cache: %s' % self._name)
 
         for analysis in self._child_analyses:
             analysis.run(refresh=refresh, _parent_cache=self._cache)

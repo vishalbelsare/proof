@@ -1,19 +1,13 @@
-#!/usr/bin/env python
-# -*- coding: utf8 -*-
-
-from copy import deepcopy
-from glob import glob
 import os
 import shutil
-
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
+from copy import deepcopy
+from glob import glob
 
 import proof
 
 TEST_CACHE = '.proof-test'
+
 
 class TestAnalysis(unittest.TestCase):
     def setUp(self):
@@ -51,7 +45,7 @@ class TestAnalysis(unittest.TestCase):
     def stage_unicode(self, data):
         self.executed_stage_unicode += 1
 
-        data['state_unicode'] = u'ßäœ'
+        data['state_unicode'] = 'ßäœ'
 
     @proof.never_cache
     def stage_never_cache(self, data):
@@ -70,9 +64,9 @@ class TestAnalysis(unittest.TestCase):
 
         self.assertEqual(data, {})
         self.assertEqual(self.data_before_stage1, {})
-        self.assertEqual(self.data_after_stage1, { 'stage1': 5 })
-        self.assertEqual(self.data_before_stage2, { 'stage1' : 5 })
-        self.assertEqual(self.data_after_stage2, { 'stage1': 5, 'stage2': 25 })
+        self.assertEqual(self.data_after_stage1, {'stage1': 5})
+        self.assertEqual(self.data_before_stage2, {'stage1': 5})
+        self.assertEqual(self.data_after_stage2, {'stage1': 5, 'stage2': 25})
 
     def test_caching(self):
         analysis = proof.Analysis(self.stage1, cache_dir=TEST_CACHE)
